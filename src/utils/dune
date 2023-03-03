@@ -1,6 +1,12 @@
 (ocamllex SExprLexer)
+(ocamllex SExprLexerPos)
 
 (menhir
  (infer true)
  (flags --explain)
  (modules SExprParser))
+
+(menhir
+ (infer true)
+ (flags --explain)
+ (modules SExprParserPos))

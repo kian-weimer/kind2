@@ -18,10 +18,11 @@
 
 module Ids = Lib.ReservedIds
 
-
 module HS = HStringSExpr
+module HSP = HStringSExprPos
 module D = GenericSMTLIBDriver
 module I = LustreIdent
+module R = Res
 
 module G = Graph.Make(struct
   type t = HString.t
@@ -30,6 +31,10 @@ module G = Graph.Make(struct
 
   let pp_print_t = HString.pp_print_hstring
 end)
+
+let (>>=) = R.(>>=)
+let (let*) = R.(>>=)
+let (>>) = R.(>>)
 
 
 let conv = D.smtlib_string_sexpr_conv
@@ -62,6 +67,10 @@ let s_reachable = HString.mk_hstring ":reachable"
 let s_query = HString.mk_hstring ":query"
 let s_only_change = HString.mk_hstring "OnlyChange"
 let s_equal = HString.mk_hstring "="
+
+type error = [
+  | `CmcTypeCheckerError of Lib.position * CmcTypeChecker.error_kind
+]
 
 type subsystem_scope = string list
 type sys_var_mapping = (subsystem_scope * StateVar.t list) list
@@ -959,11 +968,20 @@ let check_trans_system system_name base_system (cmc_check_def: check_system)=
     trans_formals; trans_uf_symbol}
 
 
+let rec hsp_to_hs sexps = 
+  match sexps with
+  | HSP.Atom sexp -> HS.Atom sexp.value
+  | HSP.List sexps -> HS.List (List.map hsp_to_hs sexps)
+
 (* Parse from input channel *)
 let of_channel in_ch = 
 
   let lexbuf = Lexing.from_channel in_ch in
-  let sexps = SExprParser.sexps SExprLexer.main lexbuf in
+  let pos_sexps = SExprParserPos.sexps SExprLexerPos.main lexbuf in
+  (* let* _ = CmcTypeChecker.type_check pos_sexps in *)
+
+  let sexps = List.map hsp_to_hs pos_sexps in
+
 
   (* let sexps = List.map fst sexps in *)
 
@@ -1125,7 +1143,7 @@ let of_channel in_ch =
     (* NOTE: This was originaly commented out *)
   Format.printf "CMC_SYS: %a@." (TransSys.pp_print_subsystems true) top_sys;
 
-  mk_subsys_structure top_sys, name_map, sys_var_mapping, enum_defs
+  Ok (mk_subsys_structure top_sys, name_map, sys_var_mapping, enum_defs)
 
 
   (* Print Here ... Use Format.printf

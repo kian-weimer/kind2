@@ -48,7 +48,9 @@ let read_input_native input_file = Native (NativeInput.of_file input_file)
 
 let read_input_vmt input_file = VMT (VmtInput.of_file input_file)
 
-let read_input_cmc input_file = CMC (CmcInput.of_file input_file)
+let read_input_cmc input_file = match CmcInput.of_file input_file with
+  | Ok res -> CMC res
+  | Error e -> R.fail_at_position (CmcErrors.error_position e) (CmcErrors.error_message e)
 
 (*let read_input_horn input_file = assert false*)
 

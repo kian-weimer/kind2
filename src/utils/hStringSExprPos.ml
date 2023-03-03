@@ -15,29 +15,30 @@
    permissions and limitations under the License. 
 
 *)
+open Lib
 
 (* Signature of an string atom as input for the functor {!SExprBase.Make} *)
-module HStringAtom = struct 
-  type t = HString.t 
-  let pp_print_atom = HString.pp_print_hstring
+module HStringAtomPos = struct 
+  type t = {pos: position ; value: HString.t}
+  let pp_print_atom f a = HString.pp_print_hstring f a.value
 end
 
 
 (* Define the type of the result from the functor application *)
-module type HStringSExpr = SExprBase.S with type atom = HString.t
+module type HStringSExprPos = SExprBase.S with type atom = position * HString.t 
 
 
 (* Create a module of string S-expressions *)
-module HStringSExpr = SExprBase.Make (HStringAtom)
+module HStringSExprPos = SExprBase.Make (HStringAtomPos)
 
 
 (* Include the module here to avoid having to write
    HStringSExpr.HStringSExpr *)
-include HStringSExpr
+include HStringSExprPos
 
 
 let rec equal s1 s2 = match s1, s2 with
-  | Atom a1, Atom a2 -> a1 == a2
+  | Atom a1, Atom a2 -> a1.value == a2.value
   | List l1, List l2 ->
     begin
       try List.for_all2 equal l1 l2
